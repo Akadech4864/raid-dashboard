@@ -614,10 +614,10 @@
                 <input id="personNote" placeholder="หมายเหตุ" />
                 <div style="display:flex;gap:8px;">
                   <button class="secondary" type="submit" style="background:rgba(168,85,247,0.2);color:#e9d5ff;border-color:rgba(168,85,247,0.4);">บันทึก</button>
-                  <button type="button" onclick="document.getElementById('personForm').style.display='none';document.getElementById('personAddBtn').style.display='block';" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;">ยกเลิก</button>
+                  <button type="button" id="personCancelBtn" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;">ยกเลิก</button>
                 </div>
               </form>
-              <button id="personAddBtn" class="secondary" style="margin-top:12px;background:rgba(168,85,247,0.2);color:#e9d5ff;border-color:rgba(168,85,247,0.4);" onclick="document.getElementById('personForm').style.display='grid';document.getElementById('personAddBtn').style.display='none';">+ เพิ่มบุคคล</button>
+              <button id="personAddBtn" class="secondary" style="margin-top:12px;background:rgba(168,85,247,0.2);color:#e9d5ff;border-color:rgba(168,85,247,0.4);">+ เพิ่มบุคคล</button>
             </div>
 
             <div class="panel" id="seizedSection" style="border-color: rgba(56,189,248,0.3);">
@@ -632,10 +632,10 @@
                 <input id="itemNote" placeholder="หมายเหตุ (เช่น จุดที่พบ, เลขครุภัณฑ์)" />
                 <div style="display:flex;gap:8px;">
                   <button class="secondary" type="submit" style="background:rgba(56,189,248,0.2);color:#7dd3fc;border-color:rgba(56,189,248,0.4);">บันทึก</button>
-                  <button type="button" onclick="document.getElementById('seizedForm').style.display='none';document.getElementById('seizedAddBtn').style.display='block';" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;">ยกเลิก</button>
+                  <button type="button" id="seizedCancelBtn" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;">ยกเลิก</button>
                 </div>
               </form>
-              <button id="seizedAddBtn" class="secondary" style="margin-top:12px;background:rgba(56,189,248,0.2);color:#7dd3fc;border-color:rgba(56,189,248,0.4);" onclick="document.getElementById('seizedForm').style.display='grid';document.getElementById('seizedAddBtn').style.display='none';">+ เพิ่มสิ่งของ</button>
+              <button id="seizedAddBtn" class="secondary" style="margin-top:12px;background:rgba(56,189,248,0.2);color:#7dd3fc;border-color:rgba(56,189,248,0.4);">+ เพิ่มสิ่งของ</button>
             </div>
 
             <div class="panel" id="logSection" style="border-color: rgba(245,158,11,0.3);">
@@ -653,10 +653,10 @@
                 <textarea id="logText" rows="3" placeholder="สรุปเหตุการณ์หรือคำสั่ง" required></textarea>
                 <div style="display:flex;gap:8px;">
                   <button class="secondary" type="submit" style="background:rgba(245,158,11,0.2);color:#fcd34d;border-color:rgba(245,158,11,0.4);">บันทึก</button>
-                  <button type="button" onclick="document.getElementById('logForm').style.display='none';document.getElementById('logAddBtn').style.display='block';" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;">ยกเลิก</button>
+                  <button type="button" id="logCancelBtn" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;">ยกเลิก</button>
                 </div>
               </form>
-              <button id="logAddBtn" class="secondary" style="margin-top:12px;background:rgba(245,158,11,0.2);color:#fcd34d;border-color:rgba(245,158,11,0.4);" onclick="document.getElementById('logForm').style.display='grid';document.getElementById('logAddBtn').style.display='none';">+ เพิ่มบันทึก/คำสั่ง</button>
+              <button id="logAddBtn" class="secondary" style="margin-top:12px;background:rgba(245,158,11,0.2);color:#fcd34d;border-color:rgba(245,158,11,0.4);">+ เพิ่มบันทึก/คำสั่ง</button>
             </div>
           </div>
 
@@ -670,23 +670,23 @@
   </div>
 
   <nav class="quick-nav" id="quickNav">
-    <button onclick="document.getElementById('topDashboard').scrollIntoView({behavior:'smooth'})" title="Dashboard รวม">
+    <button id="quickNavTop" title="Dashboard รวม">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
       <span>หน้าแรก</span>
     </button>
-    <button onclick="document.getElementById('detailSection').scrollIntoView({behavior:'smooth'})" title="รายละเอียดจุด">
+    <button id="quickNavDetail" title="รายละเอียดจุด">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
       <span>รายละเอียด</span>
     </button>
-    <button onclick="document.getElementById('personSection').scrollIntoView({behavior:'smooth'})" title="บุคคล">
+    <button id="quickNavPerson" title="บุคคล">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
       <span>บุคคล</span>
     </button>
-    <button onclick="document.getElementById('seizedSection').scrollIntoView({behavior:'smooth'})" title="สิ่งของ">
+    <button id="quickNavSeized" title="สิ่งของ">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
       <span>สิ่งของ</span>
     </button>
-    <button onclick="document.getElementById('logSection').scrollIntoView({behavior:'smooth'})" title="สั่งการ">
+    <button id="quickNavLog" title="สั่งการ">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
       <span>สั่งการ</span>
     </button>
@@ -1427,6 +1427,34 @@
       renderMap();
     }
 
+    // Add/Cancel button handlers to completely replace inline onclicks
+    document.getElementById('personAddBtn').addEventListener('click', () => {
+      personForm.style.display = 'grid';
+      document.getElementById('personAddBtn').style.display = 'none';
+    });
+    document.getElementById('personCancelBtn').addEventListener('click', () => {
+      personForm.style.display = 'none';
+      document.getElementById('personAddBtn').style.display = 'block';
+    });
+
+    document.getElementById('seizedAddBtn').addEventListener('click', () => {
+      seizedForm.style.display = 'grid';
+      document.getElementById('seizedAddBtn').style.display = 'none';
+    });
+    document.getElementById('seizedCancelBtn').addEventListener('click', () => {
+      seizedForm.style.display = 'none';
+      document.getElementById('seizedAddBtn').style.display = 'block';
+    });
+
+    document.getElementById('logAddBtn').addEventListener('click', () => {
+      logForm.style.display = 'grid';
+      document.getElementById('logAddBtn').style.display = 'none';
+    });
+    document.getElementById('logCancelBtn').addEventListener('click', () => {
+      logForm.style.display = 'none';
+      document.getElementById('logAddBtn').style.display = 'block';
+    });
+
     seizedForm.addEventListener('submit', e => {
       e.preventDefault();
       const site = state.sites.find(s => s.id === selectedId);
@@ -1515,6 +1543,23 @@
 
     mapStatusFilterEl.addEventListener('change', renderAll);
     focusBtn.addEventListener('click', focusOnSelected);
+
+    // Event listeners for quick nav buttons to avoid inline scriptlet syntax errors
+    document.getElementById('quickNavTop').addEventListener('click', () => {
+      document.getElementById('topDashboard').scrollIntoView({ behavior: 'smooth' });
+    });
+    document.getElementById('quickNavDetail').addEventListener('click', () => {
+      document.getElementById('detailSection').scrollIntoView({ behavior: 'smooth' });
+    });
+    document.getElementById('quickNavPerson').addEventListener('click', () => {
+      document.getElementById('personSection').scrollIntoView({ behavior: 'smooth' });
+    });
+    document.getElementById('quickNavSeized').addEventListener('click', () => {
+      document.getElementById('seizedSection').scrollIntoView({ behavior: 'smooth' });
+    });
+    document.getElementById('quickNavLog').addEventListener('click', () => {
+      document.getElementById('logSection').scrollIntoView({ behavior: 'smooth' });
+    });
 
     resetBtn.addEventListener('click', () => {
       if (confirm('ต้องการรีเซ็ตข้อมูลกลับเป็นตัวอย่างหรือไม่?')) {
