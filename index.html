@@ -606,7 +606,8 @@
           <div class="grid-three">
             <div class="panel" id="personSection" style="border-color: rgba(168,85,247,0.3);">
               <div class="section-title"><h3>บุคคลที่พบในสถานที่ค้น</h3><div class="chip" id="personCount" style="background:rgba(168,85,247,0.2);color:#e9d5ff;">0 คน</div></div>
-              <form id="personForm">
+              <ul class="list" id="personList"></ul>
+              <form id="personForm" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(168,85,247,0.2);">
                 <div class="form-row">
                   <input id="personName" placeholder="ชื่อ-นามสกุล" required />
                   <input id="personNationality" placeholder="สัญชาติ" />
@@ -616,28 +617,36 @@
                   <input id="personRole" placeholder="สถานะ/ความเกี่ยวข้อง" />
                 </div>
                 <input id="personNote" placeholder="หมายเหตุ" />
-                <button class="secondary" type="submit" style="background:rgba(168,85,247,0.2);color:#e9d5ff;border-color:rgba(168,85,247,0.4);">บันทึกบุคคล</button>
+                <div style="display:flex;gap:8px;">
+                  <button class="secondary" type="submit" style="background:rgba(168,85,247,0.2);color:#e9d5ff;border-color:rgba(168,85,247,0.4);">บันทึก</button>
+                  <button type="button" onclick="document.getElementById('personForm').style.display='none';document.getElementById('personAddBtn').style.display='block';" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;">ยกเลิก</button>
+                </div>
               </form>
-              <ul class="list" id="personList"></ul>
+              <button id="personAddBtn" class="secondary" style="margin-top:12px;background:rgba(168,85,247,0.2);color:#e9d5ff;border-color:rgba(168,85,247,0.4);" onclick="document.getElementById('personForm').style.display='grid';document.getElementById('personAddBtn').style.display='none';">+ เพิ่มบุคคล</button>
             </div>
 
             <div class="panel" id="seizedSection" style="border-color: rgba(56,189,248,0.3);">
               <div class="section-title"><h3>สิ่งของตรวจยึด</h3><div class="chip" id="seizedCount" style="background:rgba(56,189,248,0.2);color:#7dd3fc;">0 รายการ</div></div>
-              <form id="seizedForm">
+              <ul class="list" id="seizedList"></ul>
+              <form id="seizedForm" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(56,189,248,0.2);">
                 <div class="form-row">
                   <input id="itemName" placeholder="รายการที่ตรวจยึด" required />
                   <input id="itemQty" type="number" min="1" placeholder="จำนวน" required style="max-width:80px;" />
                   <input id="itemUnit" placeholder="หน่วย (เช่น ชิ้น, แผ่น, เล่ม)" style="max-width:120px;" />
                 </div>
                 <input id="itemNote" placeholder="หมายเหตุ (เช่น จุดที่พบ, เลขครุภัณฑ์)" />
-                <button class="secondary" type="submit" style="background:rgba(56,189,248,0.2);color:#7dd3fc;border-color:rgba(56,189,248,0.4);">บันทึกสิ่งตรวจยึด</button>
+                <div style="display:flex;gap:8px;">
+                  <button class="secondary" type="submit" style="background:rgba(56,189,248,0.2);color:#7dd3fc;border-color:rgba(56,189,248,0.4);">บันทึก</button>
+                  <button type="button" onclick="document.getElementById('seizedForm').style.display='none';document.getElementById('seizedAddBtn').style.display='block';" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;">ยกเลิก</button>
+                </div>
               </form>
-              <ul class="list" id="seizedList"></ul>
+              <button id="seizedAddBtn" class="secondary" style="margin-top:12px;background:rgba(56,189,248,0.2);color:#7dd3fc;border-color:rgba(56,189,248,0.4);" onclick="document.getElementById('seizedForm').style.display='grid';document.getElementById('seizedAddBtn').style.display='none';">+ เพิ่มสิ่งของ</button>
             </div>
 
             <div class="panel" id="logSection" style="border-color: rgba(245,158,11,0.3);">
               <div class="section-title"><h3>บันทึก/คำสั่งภารกิจ</h3><div class="chip" id="logCount" style="background:rgba(245,158,11,0.2);color:#fcd34d;">0 รายการ</div></div>
-              <form id="logForm">
+              <ul class="list" id="logList"></ul>
+              <form id="logForm" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(245,158,11,0.2);">
                 <div class="form-row">
                   <select id="logPriority">
                     <option value="info">ปกติ</option>
@@ -647,9 +656,12 @@
                   <input id="logAuthor" placeholder="ผู้รายงาน/ผู้สั่งการ" />
                 </div>
                 <textarea id="logText" rows="3" placeholder="สรุปเหตุการณ์หรือคำสั่ง" required></textarea>
-                <button class="secondary" type="submit" style="background:rgba(245,158,11,0.2);color:#fcd34d;border-color:rgba(245,158,11,0.4);">เพิ่มบันทึก/คำสั่ง</button>
+                <div style="display:flex;gap:8px;">
+                  <button class="secondary" type="submit" style="background:rgba(245,158,11,0.2);color:#fcd34d;border-color:rgba(245,158,11,0.4);">บันทึก</button>
+                  <button type="button" onclick="document.getElementById('logForm').style.display='none';document.getElementById('logAddBtn').style.display='block';" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;">ยกเลิก</button>
+                </div>
               </form>
-              <ul class="list" id="logList"></ul>
+              <button id="logAddBtn" class="secondary" style="margin-top:12px;background:rgba(245,158,11,0.2);color:#fcd34d;border-color:rgba(245,158,11,0.4);" onclick="document.getElementById('logForm').style.display='grid';document.getElementById('logAddBtn').style.display='none';">+ เพิ่มบันทึก/คำสั่ง</button>
             </div>
           </div>
 
@@ -1339,14 +1351,9 @@
               <span class="status-pill status-${site.status}">${statusLabels[site.status]}</span>
             </div>
             <div class="title">${site.name}</div>
-            <div class="meta-row" style="margin-top:6px;">
-              <span class="pill map-nav-tag" data-target="personSection" style="cursor:pointer;background:rgba(168,85,247,0.2);color:#e9d5ff;">บุคคล ${pList.length}</span>
-              <span class="pill map-nav-tag" data-target="seizedSection" style="cursor:pointer;">สิ่งของ ${sList.length}</span>
-              <span class="pill map-nav-tag" data-target="logSection" style="cursor:pointer;background:rgba(245,158,11,0.15);color:#fcd34d;">สั่งการ ${lList.length}</span>
-            </div>
-            <div class="ticker-row"><span class="ticker-label" style="background:rgba(168,85,247,0.2);color:#e9d5ff;">บุคคล ${pList.length}</span><div class="ticker-track"><div class="ticker-content">${marqueeText(pList)}</div></div></div>
-            <div class="ticker-row"><span class="ticker-label">สิ่งของ ${sList.length}</span><div class="ticker-track"><div class="ticker-content">${marqueeText(sList)}</div></div></div>
-            <div class="ticker-row"><span class="ticker-label" style="background:rgba(245,158,11,0.15);color:#fcd34d;">สั่งการ ${lList.length}</span><div class="ticker-track"><div class="ticker-content">${marqueeText(lList)}</div></div></div>
+            <div class="ticker-row"><span class="ticker-label map-nav-tag" data-target="personSection" style="background:rgba(168,85,247,0.2);color:#e9d5ff;cursor:pointer;">บุคคล ${pList.length}</span><div class="ticker-track"><div class="ticker-content">${marqueeText(pList)}</div></div></div>
+            <div class="ticker-row"><span class="ticker-label map-nav-tag" data-target="seizedSection" style="cursor:pointer;">สิ่งของ ${sList.length}</span><div class="ticker-track"><div class="ticker-content">${marqueeText(sList)}</div></div></div>
+            <div class="ticker-row"><span class="ticker-label map-nav-tag" data-target="logSection" style="background:rgba(245,158,11,0.15);color:#fcd34d;cursor:pointer;">สั่งการ ${lList.length}</span><div class="ticker-track"><div class="ticker-content">${marqueeText(lList)}</div></div></div>
           `;
           div.addEventListener('click', () => {
             selectedId = site.id;
@@ -1431,6 +1438,8 @@
       site.seized.push({ id: crypto.randomUUID(), name, qty, unit, note, ts: Date.now() });
       site.lastUpdate = Date.now();
       seizedForm.reset();
+      seizedForm.style.display = 'none';
+      document.getElementById('seizedAddBtn').style.display = 'block';
       renderAll();
     });
 
@@ -1445,6 +1454,8 @@
       site.logs.push({ id: crypto.randomUUID(), text, priority, author, ts: Date.now() });
       site.lastUpdate = Date.now();
       logForm.reset();
+      logForm.style.display = 'none';
+      document.getElementById('logAddBtn').style.display = 'block';
       renderAll();
     });
 
@@ -1462,6 +1473,8 @@
       site.persons.push({ id: crypto.randomUUID(), name, nationality, idCard, role, note, ts: Date.now() });
       site.lastUpdate = Date.now();
       personForm.reset();
+      personForm.style.display = 'none';
+      document.getElementById('personAddBtn').style.display = 'block';
       renderAll();
     });
 
