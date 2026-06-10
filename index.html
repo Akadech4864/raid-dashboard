@@ -837,25 +837,35 @@
     
     function loadFromSheets() {
       return new Promise((resolve) => {
-        if (typeof google !== 'undefined' && google.script) {
-          showSyncStatus('กำลังโหลดข้อมูล...');
-          google.script.run
-            .withSuccessHandler(sites => {
-              if (sites && sites.length > 0) {
-                showSyncStatus('โหลดข้อมูลแล้ว', 2000);
-                resolve({ sites: sites });
-              } else {
-                showSyncStatus('ใช้ข้อมูลเริ่มต้น', 2000);
-                resolve({ sites: JSON.parse(JSON.stringify(defaultSites)) });
-              }
-            })
-            .withFailureHandler(err => {
-              console.warn('Sheets load failed:', err);
-              showSyncStatus('ใช้ข้อมูล offline', 3000);
-              resolve(loadFromLocalStorage());
-            })
-            .getData();
-        } else {
+        try {
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            showSyncStatus('กำลังโหลดข้อมูล...');
+            google.script.run
+              .withSuccessHandler(sites => {
+                try {
+                  if (sites && sites.length > 0) {
+                    showSyncStatus('โหลดข้อมูลแล้ว', 2000);
+                    resolve({ sites: sites });
+                  } else {
+                    showSyncStatus('ใช้ข้อมูลเริ่มต้น', 2000);
+                    resolve({ sites: JSON.parse(JSON.stringify(defaultSites)) });
+                  }
+                } catch (e) {
+                  console.error('Error in success handler:', e);
+                  resolve(loadFromLocalStorage());
+                }
+              })
+              .withFailureHandler(err => {
+                console.warn('Sheets load failed:', err);
+                showSyncStatus('ใช้ข้อมูล offline', 3000);
+                resolve(loadFromLocalStorage());
+              })
+              .getData();
+          } else {
+            resolve(loadFromLocalStorage());
+          }
+        } catch (error) {
+          console.error('google.script.run load error:', error);
           resolve(loadFromLocalStorage());
         }
       });
@@ -866,21 +876,27 @@
       isSyncing = true;
       saveToLocalStorage(); // บันทึก localStorage เสมอเป็น backup
       
-      if (typeof google !== 'undefined' && google.script) {
-        showSyncStatus('กำลังบันทึก...');
-        google.script.run
-          .withSuccessHandler(() => {
-            showSyncStatus('บันทึกลง Sheets แล้ว', 2000);
-            isSyncing = false;
-          })
-          .withFailureHandler(err => {
-            console.warn('Sheets save failed:', err);
-            showSyncStatus('บันทึก offline เท่านั้น', 3000);
-            isSyncing = false;
-          })
-          .saveData(JSON.parse(JSON.stringify(state.sites)));
-      } else {
-        showSyncStatus('บันทึก offline', 2000);
+      try {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          showSyncStatus('กำลังบันทึก...');
+          google.script.run
+            .withSuccessHandler(() => {
+              showSyncStatus('บันทึกลง Sheets แล้ว', 2000);
+              isSyncing = false;
+            })
+            .withFailureHandler(err => {
+              console.warn('Sheets save failed:', err);
+              showSyncStatus('บันทึก offline เท่านั้น', 3000);
+              isSyncing = false;
+            })
+            .saveData(JSON.parse(JSON.stringify(state.sites)));
+        } else {
+          showSyncStatus('บันทึก offline', 2000);
+          isSyncing = false;
+        }
+      } catch (error) {
+        console.error('google.script.run save error:', error);
+        showSyncStatus('บันทึก offline (Error)', 2000);
         isSyncing = false;
       }
     }
@@ -929,17 +945,25 @@
     // Auto-sync ทุก 30 วินาที
     function startAutoSync() {
       setInterval(() => {
-        if (typeof google !== 'undefined' && google.script && !isSyncing) {
-          google.script.run
-            .withSuccessHandler(sites => {
-              if (sites && sites.length > 0) {
-                state.sites = sites;
-                renderAll(false);
-                showSyncStatus('ซิงค์แล้ว', 2000);
-              }
-            })
-            .withFailureHandler(() => {})
-            .getData();
+        try {
+          if (typeof google !== 'undefined' && google.script && google.script.run && !isSyncing) {
+            google.script.run
+              .withSuccessHandler(sites => {
+                try {
+                  if (sites && sites.length > 0) {
+                    state.sites = sites;
+                    renderAll(false);
+                    showSyncStatus('ซิงค์แล้ว', 2000);
+                  }
+                } catch (e) {
+                  console.error('AutoSync success handler error:', e);
+                }
+              })
+              .withFailureHandler(() => {})
+              .getData();
+          }
+        } catch (error) {
+          console.error('AutoSync error:', error);
         }
       }, 30000);
     }
