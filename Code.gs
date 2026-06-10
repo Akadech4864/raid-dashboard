@@ -3,22 +3,6 @@
  * รองรับการดึงข้อมูลและบันทึกข้อมูลลง Google Sheets
  */
 
-// CORS Headers สำหรับอนุญาตการเรียก API จาก GitHub Pages
-function getCorsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json'
-  };
-}
-
-// จัดการ OPTIONS request (CORS preflight)
-function doOptions(e) {
-  return ContentService.createTextOutput()
-    .setHeaders(getCorsHeaders());
-}
-
 // GET Request - ดึงข้อมูลทั้งหมดจากทุก Sheets
 function doGet(e) {
   try {
@@ -82,13 +66,13 @@ function doGet(e) {
     };
     
     return ContentService.createTextOutput(JSON.stringify(response))
-      .setHeaders(getCorsHeaders());
+      .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: error.toString()
-    })).setHeaders(getCorsHeaders());
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -117,13 +101,13 @@ function doPost(e) {
     };
     
     return ContentService.createTextOutput(JSON.stringify(response))
-      .setHeaders(getCorsHeaders());
+      .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: error.toString()
-    })).setHeaders(getCorsHeaders());
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
