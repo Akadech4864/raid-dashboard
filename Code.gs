@@ -214,3 +214,99 @@ function initializeSheets() {
     }
   });
 }
+
+// ฟังก์ชันนำเข้าข้อมูลจริงเริ่มต้นลงสเปรดชีตอัตโนมัติ
+function importInitialData() {
+  const spreadsheet = getSpreadsheet();
+  initializeSheets();
+  
+  const sitesSheet = spreadsheet.getSheetByName('sites');
+  if (sitesSheet.getLastRow() > 1) {
+    sitesSheet.deleteRows(2, sitesSheet.getLastRow() - 1);
+  }
+  
+  const defaultSites = [
+    {
+      id: 'P1',
+      name: 'บริษัท นาราวี โฮลดิ้ง จำกัด',
+      alias: 'จุดที่ 1',
+      address: '69/18 ซอยกรุงเทพกรีฑา 15 (ประชาร่วมใจ) แขวงหัวหมาก เขตบางกะปิ กรุงเทพมหานคร',
+      lat: 13.756121, lng: 100.692544,
+      status: 'planned',
+      commander: '', team: '', contact: '', startTime: '', risk: '',
+      objective: 'ตรวจค้นเอกสารการถือหุ้น เอกสารทางบัญชี หลักฐานการรับ-โอนเงิน คอมพิวเตอร์ โทรศัพท์ สื่อบันทึกข้อมูลอิเล็กทรอนิกส์',
+      intel: 'กรรมการ: นางสาวปิยนุช อ้วนแก้ว, นายคุนทู ฮู (สัญชาติจีน) / เลขทะเบียน 0105566107221 / สงสัยถือหุ้นแทนคนต่างด้าว',
+      lastUpdate: Date.now()
+    },
+    {
+      id: 'P2',
+      name: 'บริษัท โฮลดิ้ง กู๊ด (ไทยแลนด์) จำกัด',
+      alias: 'จุดที่ 2',
+      address: '69/17 ซอยกรุงเทพกรีฑา 15 (ประชาร่วมใจ) แขวงหัวหมาก เขตบางกะปิ กรุงเทพมหานคร',
+      lat: 13.756121, lng: 100.692544,
+      status: 'planned',
+      commander: '', team: '', contact: '', startTime: '', risk: '',
+      objective: 'ตรวจค้นเอกสารการถือหุ้น เอกสารทางบัญชี หลักฐานการรับ-โอนเงิน คอมพิวเตอร์ โทรศัพท์ สื่อบันทึกข้อมูลอิเล็กทรอนิกส์',
+      intel: 'เลขทะเบียน 0105565180600 / สงสัยถือหุ้นแทนคนต่างด้าว / ที่ตั้งใกล้จุดที่ 1',
+      lastUpdate: Date.now()
+    },
+    {
+      id: 'P3',
+      name: 'บริษัท เหลียง พีเพิล ไทย เทรดดิ้ง จำกัด',
+      alias: 'จุดที่ 3',
+      address: '19/122 ถนนกาญจนาภิเษก แขวงทับช้าง เขตสะพานสูง กรุงเทพมหานคร (มบ.เวนิว พระราม 9)',
+      lat: 13.757663106715166, lng: 100.70291138976825,
+      status: 'planned',
+      commander: '', team: '', contact: '', startTime: '', risk: '',
+      objective: 'ตรวจค้นเอกสารการถือหุ้น เอกสารทางบัญชี หลักฐานการรับ-โอนเงิน คอมพิวเตอร์ โทรศัพท์ สื่อบันทึกข้อมูลอิเล็กทรอนิกส์',
+      intel: 'ไม่ติดป้ายชื่อบริษัท / ลักษณะมีผู้อยู่อาศัย / พบรถยนต์ BMW ทะเบียน 3ขว 3785 กรุงเทพมหานคร',
+      lastUpdate: Date.now()
+    },
+    {
+      id: 'P4',
+      name: 'บริษัท T.A. Lawfirm',
+      alias: 'จุดที่ 4',
+      address: 'อาคารศุภาลัย แกรนด์ ทาวเวอร์ ชั้น 9 ห้อง 903, 1011 ถนนพระราม 3 แขวงช่องนนทรี เขตยานนาวา กรุงเทพมหานคร',
+      lat: 13.68304697416347, lng: 100.54729206869874,
+      status: 'planned',
+      commander: '', team: '', contact: '', startTime: '', risk: '',
+      objective: 'ตรวจค้นเอกสารการจดทะเบียนบริษัท เอกสารทางบัญชี สำนักงานทำบัญชี/ทนายความ',
+      intel: 'สำนักงานทำบัญชี-กฎหมาย / Tel: 099-424-9714 / Email: taianlawfirm@gmail.com / พบพนักงานหลายรายมีประกันสังคมที่นี่',
+      lastUpdate: Date.now()
+    },
+    {
+      id: 'P5',
+      name: 'บ้าน MR. HAO DENG',
+      alias: 'จุดที่ 5',
+      address: '222/67 โครงการ The City พระราม 9 – กรุงเทพกรีฑา ถนนศรีนครินทร์-ร่มเกล้า แขวงทับช้าง เขตสะพานสูง กรุงเทพมหานคร',
+      lat: 13.74976128357754, lng: 100.70162601589696,
+      status: 'planned',
+      commander: '', team: '', contact: '', startTime: '', risk: '',
+      objective: 'ตรวจค้นเอกสารการถือหุ้น เอกสารการชำระค่าหุ้น หลักฐานการรับ-โอนเงิน คอมพิวเตอร์ โทรศัพท์มือถือ สื่อบันทึกข้อมูลอิเล็กทรอนิกส์',
+      intel: 'นาย HAO DENG สัญชาติจีน / โอนเงิน 4,000,000 บาท ให้ น.ส.ปิยนุช / เบอร์ 090-526-6666 / พบรถ MERCEDES BENZ S 350 d ทะเบียน 9กฌ 77 กทม.',
+      lastUpdate: Date.now()
+    }
+  ];
+
+  defaultSites.forEach(site => {
+    sitesSheet.appendRow([
+      site.id,
+      site.name,
+      site.alias,
+      site.address,
+      site.lat,
+      site.lng,
+      site.status,
+      site.commander,
+      site.team,
+      site.contact,
+      site.startTime,
+      site.objective,
+      site.intel,
+      site.risk,
+      site.lastUpdate
+    ]);
+  });
+  
+  return "นำเข้าข้อมูลสำเร็จ!";
+}
