@@ -7,12 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root {
       --bg: #0b1021;
@@ -697,19 +692,8 @@
     </button>
   </nav>
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // ==========================================
-    // Google Sheets API Configuration
-    // แก้ไข URL นี้หลังจาก Deploy Apps Script
-    // ==========================================
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwpj7LepWIdyvkErE94o_jEply-kQJGwMPDoIMDzo0j7yfysrHHEIXrlAeJF_F09SA/exec';
-    
-    // Fallback to localStorage if API not configured
     const STORAGE_KEY = 'raid-dashboard-v1';
     const statusLabels = {
       planned: 'เตรียมพร้อม',
@@ -847,70 +831,60 @@
     let mapMarkers = {};
 
     // ==========================================
-    // Google Sheets API Functions
+    // Google Sheets Functions (via google.script.run)
     // ==========================================
     let isSyncing = false;
-    let lastSyncTime = 0;
     
-    async function loadFromSheets() {
-      if (API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-        console.log('API not configured, using localStorage fallback');
-        return loadFromLocalStorage();
-      }
-      
-      try {
-        showSyncStatus('กำลังโหลดข้อมูล...');
-        const response = await fetch(API_URL);
-        const result = await response.json();
-        
-        if (result.success && result.data && result.data.sites) {
-          lastSyncTime = Date.now();
-          showSyncStatus('โหลดข้อมูลแล้ว', 2000);
-          return result.data;
+    function loadFromSheets() {
+      return new Promise((resolve) => {
+        if (typeof google !== 'undefined' && google.script) {
+          showSyncStatus('กำลังโหลดข้อมูล...');
+          google.script.run
+            .withSuccessHandler(sites => {
+              if (sites && sites.length > 0) {
+                showSyncStatus('โหลดข้อมูลแล้ว', 2000);
+                resolve({ sites: sites });
+              } else {
+                showSyncStatus('ใช้ข้อมูลเริ่มต้น', 2000);
+                resolve({ sites: JSON.parse(JSON.stringify(defaultSites)) });
+              }
+            })
+            .withFailureHandler(err => {
+              console.warn('Sheets load failed:', err);
+              showSyncStatus('ใช้ข้อมูล offline', 3000);
+              resolve(loadFromLocalStorage());
+            })
+            .getData();
         } else {
-          throw new Error(result.error || 'Invalid data');
+          resolve(loadFromLocalStorage());
         }
-      } catch (error) {
-        console.warn('Sheets load failed, using localStorage:', error);
-        showSyncStatus('ใช้ข้อมูล offline', 3000);
-        return loadFromLocalStorage();
-      }
+      });
     }
     
-    async function saveToSheets() {
-      if (API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-        saveToLocalStorage();
-        return;
-      }
-      
-      if (isSyncing) return; // Prevent duplicate saves
+    function saveToSheets() {
+      if (isSyncing) return;
       isSyncing = true;
+      saveToLocalStorage(); // บันทึก localStorage เสมอเป็น backup
       
-      try {
+      if (typeof google !== 'undefined' && google.script) {
         showSyncStatus('กำลังบันทึก...');
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sites: state.sites })
-        });
-        
-        const result = await response.json();
-        if (result.success) {
-          lastSyncTime = Date.now();
-          showSyncStatus('บันทึกแล้ว', 2000);
-        } else {
-          throw new Error(result.error);
-        }
-      } catch (error) {
-        console.warn('Sheets save failed, saving to localStorage:', error);
-        saveToLocalStorage();
-        showSyncStatus('บันทึก offline', 3000);
-      } finally {
+        google.script.run
+          .withSuccessHandler(() => {
+            showSyncStatus('บันทึกลง Sheets แล้ว', 2000);
+            isSyncing = false;
+          })
+          .withFailureHandler(err => {
+            console.warn('Sheets save failed:', err);
+            showSyncStatus('บันทึก offline เท่านั้น', 3000);
+            isSyncing = false;
+          })
+          .saveData(JSON.parse(JSON.stringify(state.sites)));
+      } else {
+        showSyncStatus('บันทึก offline', 2000);
         isSyncing = false;
       }
     }
     
-    // Fallback localStorage functions
     function loadFromLocalStorage() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -926,7 +900,6 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
     
-    // Legacy functions for backward compatibility
     function loadState() {
       return loadFromLocalStorage();
     }
@@ -940,11 +913,8 @@
       const indicator = document.getElementById('syncStatus') || createSyncIndicator();
       indicator.textContent = message;
       indicator.style.opacity = '1';
-      
       if (duration > 0) {
-        setTimeout(() => {
-          indicator.style.opacity = '0';
-        }, duration);
+        setTimeout(() => { indicator.style.opacity = '0'; }, duration);
       }
     }
     
@@ -956,17 +926,22 @@
       return indicator;
     }
     
-    // Auto-sync every 30 seconds
+    // Auto-sync ทุก 30 วินาที
     function startAutoSync() {
-      setInterval(async () => {
-        if (API_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE' && !isSyncing) {
-          const data = await loadFromSheets();
-          if (data && data.sites && data.lastSync > lastSyncTime) {
-            state = data;
-            renderAll(false); // Render without saving
-          }
+      setInterval(() => {
+        if (typeof google !== 'undefined' && google.script && !isSyncing) {
+          google.script.run
+            .withSuccessHandler(sites => {
+              if (sites && sites.length > 0) {
+                state.sites = sites;
+                renderAll(false);
+                showSyncStatus('ซิงค์แล้ว', 2000);
+              }
+            })
+            .withFailureHandler(() => {})
+            .getData();
         }
-      }, 30000); // 30 seconds
+      }, 30000);
     }
 
     function formatTime(ts) {
@@ -1408,6 +1383,7 @@
     }
 
     function renderMap() {
+      if (typeof L === 'undefined') { console.warn('Leaflet not loaded yet'); return; }
       if (!map) {
         map = L.map('raidMap', { scrollWheelZoom: false }).setView([13.7563, 100.5018], 11.4);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1557,7 +1533,12 @@
       startAutoSync();
     }
     
-    init();
+    // รอให้ Leaflet โหลดเสร็จก่อนค่อย init
+    if (typeof L !== 'undefined') {
+      init();
+    } else {
+      window.addEventListener('load', init);
+    }
   </script>
 </body>
 </html>

@@ -1,114 +1,70 @@
 /**
- * Raid Dashboard API - Google Apps Script Backend
- * รองรับการดึงข้อมูลและบันทึกข้อมูลลง Google Sheets
+ * Raid Dashboard - Google Apps Script Backend
+ * เสิร์ฟหน้าเว็บ + จัดการข้อมูล Google Sheets
  */
 
-// GET Request - ดึงข้อมูลทั้งหมดจากทุก Sheets
-function doGet(e) {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    
-    // อ่านข้อมูลจากแต่ละ Sheet
-    const sites = getSheetData(spreadsheet, 'sites');
-    const persons = getSheetData(spreadsheet, 'persons');
-    const seized = getSheetData(spreadsheet, 'seized');
-    const logs = getSheetData(spreadsheet, 'logs');
-    
-    // จัดรูปแบบข้อมูลให้ตรงกับโครงสร้าง Frontend
-    const formattedSites = sites.map(site => ({
-      id: site.id || '',
-      name: site.name || '',
-      alias: site.alias || '',
-      address: site.address || '',
-      lat: parseFloat(site.lat) || 0,
-      lng: parseFloat(site.lng) || 0,
-      status: site.status || 'planned',
-      commander: site.commander || '',
-      team: site.team || '',
-      contact: site.contact || '',
-      startTime: site.startTime || '',
-      objective: site.objective || '',
-      intel: site.intel || '',
-      risk: site.risk || '',
-      lastUpdate: parseInt(site.lastUpdate) || Date.now(),
-      seized: seized.filter(s => s.siteId === site.id).map(s => ({
-        id: s.id,
-        name: s.name,
-        qty: parseInt(s.qty) || 1,
-        unit: s.unit || 'ชิ้น',
-        note: s.note || '',
-        ts: parseInt(s.ts) || Date.now()
-      })),
-      logs: logs.filter(l => l.siteId === site.id).map(l => ({
-        id: l.id,
-        text: l.text || '',
-        author: l.author || '',
-        priority: l.priority || 'info',
-        ts: parseInt(l.ts) || Date.now()
-      })),
-      persons: persons.filter(p => p.siteId === site.id).map(p => ({
-        id: p.id,
-        name: p.name || '',
-        nationality: p.nationality || '',
-        idCard: p.idCard || '',
-        role: p.role || '',
-        note: p.note || '',
-        ts: parseInt(p.ts) || Date.now()
-      }))
-    }));
-    
-    const response = {
-      success: true,
-      data: {
-        sites: formattedSites,
-        lastSync: Date.now()
-      }
-    };
-    
-    return ContentService.createTextOutput(JSON.stringify(response))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({
-      success: false,
-      error: error.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
+// เปิด Spreadsheet ด้วย ID จริงของสเปรดชีต
+function getSpreadsheet() {
+  return SpreadsheetApp.openById('1drbC0MwjUcKMYaTPEU_wwc8Hec4yuriBDKZf09LaQcA');
 }
 
-// POST Request - บันทึกข้อมูลทั้งหมดลง Sheets
-function doPost(e) {
-  try {
-    const params = JSON.parse(e.postData.contents);
-    const { sites } = params;
-    
-    if (!sites || !Array.isArray(sites)) {
-      throw new Error('Invalid data format');
-    }
-    
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    
-    // เคลียร์ข้อมูลเก่าและบันทึกข้อมูลใหม่
-    saveSites(spreadsheet, sites);
-    savePersons(spreadsheet, sites);
-    saveSeized(spreadsheet, sites);
-    saveLogs(spreadsheet, sites);
-    
-    const response = {
-      success: true,
-      message: 'Data saved successfully',
-      timestamp: Date.now()
-    };
-    
-    return ContentService.createTextOutput(JSON.stringify(response))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({
-      success: false,
-      error: error.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
+// เสิร์ฟหน้าเว็บ
+function doGet(e) {
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('Raid Dashboard - ศูนย์บัญชาการปฏิบัติการ')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+// เรียกจาก google.script.run.getData()
+function getData() {
+  const spreadsheet = getSpreadsheet();
+  const sites = getSheetData(spreadsheet, 'sites');
+  const persons = getSheetData(spreadsheet, 'persons');
+  const seized = getSheetData(spreadsheet, 'seized');
+  const logs = getSheetData(spreadsheet, 'logs');
+
+  return sites.map(site => ({
+    id: site.id || '',
+    name: site.name || '',
+    alias: site.alias || '',
+    address: site.address || '',
+    lat: parseFloat(site.lat) || 0,
+    lng: parseFloat(site.lng) || 0,
+    status: site.status || 'planned',
+    commander: site.commander || '',
+    team: site.team || '',
+    contact: site.contact || '',
+    startTime: site.startTime || '',
+    objective: site.objective || '',
+    intel: site.intel || '',
+    risk: site.risk || '',
+    lastUpdate: parseInt(site.lastUpdate) || Date.now(),
+    seized: seized.filter(s => s.siteId === site.id).map(s => ({
+      id: s.id, name: s.name, qty: parseInt(s.qty) || 1,
+      unit: s.unit || 'ชิ้น', note: s.note || '', ts: parseInt(s.ts) || Date.now()
+    })),
+    logs: logs.filter(l => l.siteId === site.id).map(l => ({
+      id: l.id, text: l.text || '', author: l.author || '',
+      priority: l.priority || 'info', ts: parseInt(l.ts) || Date.now()
+    })),
+    persons: persons.filter(p => p.siteId === site.id).map(p => ({
+      id: p.id, name: p.name || '', nationality: p.nationality || '',
+      idCard: p.idCard || '', role: p.role || '', note: p.note || '',
+      ts: parseInt(p.ts) || Date.now()
+    }))
+  }));
+}
+
+// เรียกจาก google.script.run.saveData(sites)
+function saveData(sites) {
+  if (!sites || !Array.isArray(sites)) throw new Error('Invalid data');
+  const spreadsheet = getSpreadsheet();
+  saveSites(spreadsheet, sites);
+  savePersons(spreadsheet, sites);
+  saveSeized(spreadsheet, sites);
+  saveLogs(spreadsheet, sites);
+  return { success: true, timestamp: Date.now() };
 }
 
 // ฟังก์ชันช่วยเหลือ: อ่านข้อมูลจาก Sheet
@@ -249,7 +205,7 @@ function saveLogs(spreadsheet, sites) {
 
 // ฟังก์ชันเริ่มต้น: สร้าง Sheet ตัวอย่างถ้ายังไม่มี
 function initializeSheets() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const spreadsheet = getSpreadsheet();
   const sheetNames = ['sites', 'persons', 'seized', 'logs'];
   
   sheetNames.forEach(name => {
