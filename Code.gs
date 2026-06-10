@@ -1,6 +1,11 @@
 /**
  * Raid Dashboard API - Google Apps Script Backend
  * รองรับการดึงข้อมูลและบันทึกข้อมูลลง Google Sheets
+ * 
+ * วิธี Deploy:
+ * 1. Deploy > New deployment > Web app
+ * 2. Execute as: Me
+ * 3. Who has access: Anyone
  */
 
 // GET Request - ดึงข้อมูลทั้งหมดจากทุก Sheets
@@ -16,43 +21,43 @@ function doGet(e) {
     
     // จัดรูปแบบข้อมูลให้ตรงกับโครงสร้าง Frontend
     const formattedSites = sites.map(site => ({
-      id: site.id || '',
-      name: site.name || '',
-      alias: site.alias || '',
-      address: site.address || '',
+      id: String(site.id || ''),
+      name: String(site.name || ''),
+      alias: String(site.alias || ''),
+      address: String(site.address || ''),
       lat: parseFloat(site.lat) || 0,
       lng: parseFloat(site.lng) || 0,
-      status: site.status || 'planned',
-      commander: site.commander || '',
-      team: site.team || '',
-      contact: site.contact || '',
-      startTime: site.startTime || '',
-      objective: site.objective || '',
-      intel: site.intel || '',
-      risk: site.risk || '',
+      status: String(site.status || 'planned'),
+      commander: String(site.commander || ''),
+      team: String(site.team || ''),
+      contact: String(site.contact || ''),
+      startTime: String(site.startTime || ''),
+      objective: String(site.objective || ''),
+      intel: String(site.intel || ''),
+      risk: String(site.risk || ''),
       lastUpdate: parseInt(site.lastUpdate) || Date.now(),
-      seized: seized.filter(s => s.siteId === site.id).map(s => ({
-        id: s.id,
-        name: s.name,
+      seized: seized.filter(s => String(s.siteId) === String(site.id)).map(s => ({
+        id: String(s.id),
+        name: String(s.name),
         qty: parseInt(s.qty) || 1,
-        unit: s.unit || 'ชิ้น',
-        note: s.note || '',
+        unit: String(s.unit || 'ชิ้น'),
+        note: String(s.note || ''),
         ts: parseInt(s.ts) || Date.now()
       })),
-      logs: logs.filter(l => l.siteId === site.id).map(l => ({
-        id: l.id,
-        text: l.text || '',
-        author: l.author || '',
-        priority: l.priority || 'info',
+      logs: logs.filter(l => String(l.siteId) === String(site.id)).map(l => ({
+        id: String(l.id),
+        text: String(l.text || ''),
+        author: String(l.author || ''),
+        priority: String(l.priority || 'info'),
         ts: parseInt(l.ts) || Date.now()
       })),
-      persons: persons.filter(p => p.siteId === site.id).map(p => ({
-        id: p.id,
-        name: p.name || '',
-        nationality: p.nationality || '',
-        idCard: p.idCard || '',
-        role: p.role || '',
-        note: p.note || '',
+      persons: persons.filter(p => String(p.siteId) === String(site.id)).map(p => ({
+        id: String(p.id),
+        name: String(p.name || ''),
+        nationality: String(p.nationality || ''),
+        idCard: String(p.idCard || ''),
+        role: String(p.role || ''),
+        note: String(p.note || ''),
         ts: parseInt(p.ts) || Date.now()
       }))
     }));
@@ -79,16 +84,26 @@ function doGet(e) {
 // POST Request - บันทึกข้อมูลทั้งหมดลง Sheets
 function doPost(e) {
   try {
-    const params = JSON.parse(e.postData.contents);
+    let params;
+    
+    // รองรับทั้ง JSON body และ form-encoded parameter
+    if (e.postData && e.postData.contents) {
+      params = JSON.parse(e.postData.contents);
+    } else if (e.parameter && e.parameter.payload) {
+      params = JSON.parse(e.parameter.payload);
+    } else {
+      throw new Error('No data received');
+    }
+    
     const { sites } = params;
     
     if (!sites || !Array.isArray(sites)) {
-      throw new Error('Invalid data format');
+      throw new Error('Invalid data format: sites must be an array');
     }
     
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     
-    // เคลียร์ข้อมูลเก่าและบันทึกข้อมูลใหม่
+    // บันทึกข้อมูลทั้งหมด
     saveSites(spreadsheet, sites);
     savePersons(spreadsheet, sites);
     saveSeized(spreadsheet, sites);
@@ -97,13 +112,15 @@ function doPost(e) {
     const response = {
       success: true,
       message: 'Data saved successfully',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      sitesCount: sites.length
     };
     
     return ContentService.createTextOutput(JSON.stringify(response))
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
+    Logger.log('doPost Error: ' + error.toString());
     return ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: error.toString()
@@ -119,51 +136,54 @@ function getSheetData(spreadsheet, sheetName) {
   const data = sheet.getDataRange().getValues();
   if (data.length < 2) return []; // ไม่มีข้อมูล (แถวแรกเป็น header)
   
-  const headers = data[0];
+  const headers = data[0].map(h => String(h).trim());
   const rows = data.slice(1);
   
-  return rows.map(row => {
-    const obj = {};
-    headers.forEach((header, index) => {
-      obj[header] = row[index] !== undefined ? row[index] : '';
+  return rows
+    .filter(row => row.some(cell => cell !== '' && cell !== null && cell !== undefined))
+    .map(row => {
+      const obj = {};
+      headers.forEach((header, index) => {
+        obj[header] = row[index] !== undefined && row[index] !== null ? row[index] : '';
+      });
+      return obj;
     });
-    return obj;
-  });
 }
 
-// บันทึกข้อมูล Sites
+// บันทึกข้อมูล Sites (ใช้ setValues แทน appendRow เพื่อความเร็ว)
 function saveSites(spreadsheet, sites) {
   let sheet = spreadsheet.getSheetByName('sites');
   if (!sheet) {
     sheet = spreadsheet.insertSheet('sites');
-    sheet.appendRow(['id', 'name', 'alias', 'address', 'lat', 'lng', 'status', 'commander', 'team', 'contact', 'startTime', 'objective', 'intel', 'risk', 'lastUpdate']);
   }
   
-  // เคลียร์ข้อมูลเก่า (ยกเว้น header)
-  if (sheet.getLastRow() > 1) {
-    sheet.deleteRows(2, sheet.getLastRow() - 1);
-  }
+  const headers = ['id', 'name', 'alias', 'address', 'lat', 'lng', 'status', 'commander', 'team', 'contact', 'startTime', 'objective', 'intel', 'risk', 'lastUpdate'];
   
-  // เขียนข้อมูลใหม่
-  sites.forEach(site => {
-    sheet.appendRow([
-      site.id,
-      site.name,
-      site.alias,
-      site.address,
-      site.lat,
-      site.lng,
-      site.status,
-      site.commander,
-      site.team,
-      site.contact,
-      site.startTime,
-      site.objective,
-      site.intel,
-      site.risk || '',
-      site.lastUpdate
-    ]);
-  });
+  // เคลียร์ทั้ง sheet แล้วเขียนใหม่
+  sheet.clear();
+  sheet.appendRow(headers);
+  
+  if (sites.length === 0) return;
+  
+  const rows = sites.map(site => [
+    site.id || '',
+    site.name || '',
+    site.alias || '',
+    site.address || '',
+    site.lat || 0,
+    site.lng || 0,
+    site.status || 'planned',
+    site.commander || '',
+    site.team || '',
+    site.contact || '',
+    site.startTime || '',
+    site.objective || '',
+    site.intel || '',
+    site.risk || '',
+    site.lastUpdate || Date.now()
+  ]);
+  
+  sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
 }
 
 // บันทึกข้อมูล Persons
@@ -171,27 +191,32 @@ function savePersons(spreadsheet, sites) {
   let sheet = spreadsheet.getSheetByName('persons');
   if (!sheet) {
     sheet = spreadsheet.insertSheet('persons');
-    sheet.appendRow(['id', 'siteId', 'name', 'nationality', 'idCard', 'role', 'note', 'ts']);
   }
   
-  if (sheet.getLastRow() > 1) {
-    sheet.deleteRows(2, sheet.getLastRow() - 1);
-  }
+  const headers = ['id', 'siteId', 'name', 'nationality', 'idCard', 'role', 'note', 'ts'];
   
+  sheet.clear();
+  sheet.appendRow(headers);
+  
+  const rows = [];
   sites.forEach(site => {
     (site.persons || []).forEach(person => {
-      sheet.appendRow([
-        person.id,
-        site.id,
-        person.name,
-        person.nationality,
-        person.idCard,
-        person.role,
-        person.note,
-        person.ts
+      rows.push([
+        person.id || '',
+        site.id || '',
+        person.name || '',
+        person.nationality || '',
+        person.idCard || '',
+        person.role || '',
+        person.note || '',
+        person.ts || Date.now()
       ]);
     });
   });
+  
+  if (rows.length > 0) {
+    sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+  }
 }
 
 // บันทึกข้อมูล Seized
@@ -199,26 +224,31 @@ function saveSeized(spreadsheet, sites) {
   let sheet = spreadsheet.getSheetByName('seized');
   if (!sheet) {
     sheet = spreadsheet.insertSheet('seized');
-    sheet.appendRow(['id', 'siteId', 'name', 'qty', 'unit', 'note', 'ts']);
   }
   
-  if (sheet.getLastRow() > 1) {
-    sheet.deleteRows(2, sheet.getLastRow() - 1);
-  }
+  const headers = ['id', 'siteId', 'name', 'qty', 'unit', 'note', 'ts'];
   
+  sheet.clear();
+  sheet.appendRow(headers);
+  
+  const rows = [];
   sites.forEach(site => {
     (site.seized || []).forEach(item => {
-      sheet.appendRow([
-        item.id,
-        site.id,
-        item.name,
-        item.qty,
-        item.unit,
-        item.note,
-        item.ts
+      rows.push([
+        item.id || '',
+        site.id || '',
+        item.name || '',
+        item.qty || 1,
+        item.unit || 'ชิ้น',
+        item.note || '',
+        item.ts || Date.now()
       ]);
     });
   });
+  
+  if (rows.length > 0) {
+    sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+  }
 }
 
 // บันทึกข้อมูล Logs
@@ -226,35 +256,95 @@ function saveLogs(spreadsheet, sites) {
   let sheet = spreadsheet.getSheetByName('logs');
   if (!sheet) {
     sheet = spreadsheet.insertSheet('logs');
-    sheet.appendRow(['id', 'siteId', 'text', 'author', 'priority', 'ts']);
   }
   
-  if (sheet.getLastRow() > 1) {
-    sheet.deleteRows(2, sheet.getLastRow() - 1);
-  }
+  const headers = ['id', 'siteId', 'text', 'author', 'priority', 'ts'];
   
+  sheet.clear();
+  sheet.appendRow(headers);
+  
+  const rows = [];
   sites.forEach(site => {
     (site.logs || []).forEach(log => {
-      sheet.appendRow([
-        log.id,
-        site.id,
-        log.text,
-        log.author,
-        log.priority,
-        log.ts
+      rows.push([
+        log.id || '',
+        site.id || '',
+        log.text || '',
+        log.author || '',
+        log.priority || 'info',
+        log.ts || Date.now()
       ]);
     });
   });
+  
+  if (rows.length > 0) {
+    sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+  }
 }
 
-// ฟังก์ชันเริ่มต้น: สร้าง Sheet ตัวอย่างถ้ายังไม่มี
+// ฟังก์ชันเริ่มต้น: สร้าง Sheets ทั้งหมดพร้อม Headers
 function initializeSheets() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const sheetNames = ['sites', 'persons', 'seized', 'logs'];
   
-  sheetNames.forEach(name => {
-    if (!spreadsheet.getSheetByName(name)) {
-      spreadsheet.insertSheet(name);
+  const sheetsConfig = {
+    'sites': ['id', 'name', 'alias', 'address', 'lat', 'lng', 'status', 'commander', 'team', 'contact', 'startTime', 'objective', 'intel', 'risk', 'lastUpdate'],
+    'persons': ['id', 'siteId', 'name', 'nationality', 'idCard', 'role', 'note', 'ts'],
+    'seized': ['id', 'siteId', 'name', 'qty', 'unit', 'note', 'ts'],
+    'logs': ['id', 'siteId', 'text', 'author', 'priority', 'ts']
+  };
+  
+  Object.entries(sheetsConfig).forEach(([name, headers]) => {
+    let sheet = spreadsheet.getSheetByName(name);
+    if (!sheet) {
+      sheet = spreadsheet.insertSheet(name);
+      sheet.appendRow(headers);
+      // จัดรูปแบบ Header
+      sheet.getRange(1, 1, 1, headers.length)
+        .setFontWeight('bold')
+        .setBackground('#4a86c8')
+        .setFontColor('#ffffff');
+      sheet.setFrozenRows(1);
     }
   });
+  
+  Logger.log('Sheets initialized successfully!');
+}
+
+// ทดสอบ: ทดลอง GET ดูข้อมูล
+function testGet() {
+  const result = doGet({ parameter: {} });
+  Logger.log(result.getContent());
+}
+
+// ทดสอบ: ทดลอง POST ข้อมูลตัวอย่าง
+function testPost() {
+  const testData = {
+    postData: {
+      contents: JSON.stringify({
+        sites: [{
+          id: 'TEST1',
+          name: 'ทดสอบ',
+          alias: 'จุดทดสอบ',
+          address: 'ที่อยู่ทดสอบ',
+          lat: 13.7563,
+          lng: 100.5018,
+          status: 'planned',
+          commander: '',
+          team: '',
+          contact: '',
+          startTime: '',
+          objective: '',
+          intel: '',
+          risk: '',
+          lastUpdate: Date.now(),
+          persons: [],
+          seized: [],
+          logs: []
+        }]
+      })
+    }
+  };
+  
+  const result = doPost(testData);
+  Logger.log(result.getContent());
 }

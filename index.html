@@ -705,9 +705,8 @@
   <script>
     // ==========================================
     // Google Sheets API Configuration
-    // แก้ไข URL นี้หลังจาก Deploy Apps Script
     // ==========================================
-    const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxV3snWi2w_fp2a6WRPHzaDhL0ydcipSuR8c3CKEj7LG-XpE5dYCh-D18mBFPuT1Kq9/exec';
     
     // Fallback to localStorage if API not configured
     const STORAGE_KEY = 'raid-dashboard-v1';
@@ -851,60 +850,106 @@
     // ==========================================
     let isSyncing = false;
     let lastSyncTime = 0;
+    let saveTimer = null;
+    
+    function isApiConfigured() {
+      return API_URL && !API_URL.includes('YOUR_GOOGLE_APPS_SCRIPT_URL_HERE');
+    }
     
     async function loadFromSheets() {
-      if (API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+      if (!isApiConfigured()) {
         console.log('API not configured, using localStorage fallback');
         return loadFromLocalStorage();
       }
       
       try {
-        showSyncStatus('กำลังโหลดข้อมูล...');
-        const response = await fetch(API_URL);
-        const result = await response.json();
+        showSyncStatus('⏳ กำลังโหลดข้อมูล...');
+        const response = await fetch(API_URL, {
+          redirect: 'follow'
+        });
         
-        if (result.success && result.data && result.data.sites) {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+        
+        const text = await response.text();
+        let result;
+        try {
+          result = JSON.parse(text);
+        } catch (parseErr) {
+          console.warn('Response is not JSON:', text.substring(0, 200));
+          throw new Error('Invalid JSON response');
+        }
+        
+        if (result.success && result.data && result.data.sites && result.data.sites.length > 0) {
           lastSyncTime = Date.now();
-          showSyncStatus('โหลดข้อมูลแล้ว', 2000);
+          // บันทึก cache ลง localStorage ด้วย
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data));
+          showSyncStatus('✅ โหลดจาก Sheets แล้ว', 2500);
           return result.data;
+        } else if (result.success && result.data && result.data.sites && result.data.sites.length === 0) {
+          // Sheet ว่าง — ใช้ default แล้วบันทึกขึ้น Sheets
+          showSyncStatus('📋 Sheet ว่าง — ใช้ข้อมูลเริ่มต้น', 3000);
+          return { sites: JSON.parse(JSON.stringify(defaultSites)) };
         } else {
-          throw new Error(result.error || 'Invalid data');
+          throw new Error(result.error || 'Invalid data structure');
         }
       } catch (error) {
         console.warn('Sheets load failed, using localStorage:', error);
-        showSyncStatus('ใช้ข้อมูล offline', 3000);
+        showSyncStatus('⚠️ โหลด offline — ' + error.message, 4000);
         return loadFromLocalStorage();
       }
     }
     
     async function saveToSheets() {
-      if (API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-        saveToLocalStorage();
+      // บันทึก localStorage เสมอ (เป็น cache)
+      saveToLocalStorage();
+      
+      if (!isApiConfigured()) return;
+      if (isSyncing) {
+        // ถ้ากำลัง sync อยู่ ตั้ง timer รอ 2 วินาทีแล้วลองใหม่
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => saveToSheets(), 2000);
         return;
       }
       
-      if (isSyncing) return; // Prevent duplicate saves
       isSyncing = true;
       
       try {
-        showSyncStatus('กำลังบันทึก...');
+        showSyncStatus('⏳ กำลังบันทึก...');
+        
+        // สำคัญ: ห้ามใช้ Content-Type: application/json
+        // เพราะจะทำให้เกิด CORS preflight ที่ Google Apps Script ไม่รองรับ
+        // ใช้ Content-Type: text/plain แทน ซึ่งเป็น "simple request" ไม่ต้อง preflight
         const response = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sites: state.sites })
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify({ sites: state.sites }),
+          redirect: 'follow'
         });
         
-        const result = await response.json();
+        const text = await response.text();
+        let result;
+        try {
+          result = JSON.parse(text);
+        } catch (parseErr) {
+          // บาง response อาจเป็น HTML error page
+          console.warn('Save response not JSON:', text.substring(0, 200));
+          throw new Error('Response ไม่ใช่ JSON');
+        }
+        
         if (result.success) {
           lastSyncTime = Date.now();
-          showSyncStatus('บันทึกแล้ว', 2000);
+          showSyncStatus('✅ บันทึกลง Sheets แล้ว', 2500);
+          console.log('Saved to Sheets:', result);
         } else {
-          throw new Error(result.error);
+          throw new Error(result.error || 'Save failed');
         }
       } catch (error) {
-        console.warn('Sheets save failed, saving to localStorage:', error);
-        saveToLocalStorage();
-        showSyncStatus('บันทึก offline', 3000);
+        console.warn('Sheets save failed:', error);
+        showSyncStatus('⚠️ บันทึก offline — ' + error.message, 4000);
       } finally {
         isSyncing = false;
       }
@@ -932,7 +977,8 @@
     }
     
     function saveState() {
-      saveToLocalStorage();
+      // เรียก saveToSheets ซึ่งจะบันทึกทั้ง localStorage และ Sheets
+      saveToSheets();
     }
     
     // Sync status indicator
@@ -951,22 +997,26 @@
     function createSyncIndicator() {
       const indicator = document.createElement('div');
       indicator.id = 'syncStatus';
-      indicator.style.cssText = 'position:fixed;top:10px;right:10px;background:rgba(15,23,42,0.9);color:#9ca3af;padding:6px 12px;border-radius:6px;font-size:12px;z-index:9999;transition:opacity 0.3s;backdrop-filter:blur(4px);border:1px solid var(--border);';
+      indicator.style.cssText = 'position:fixed;top:10px;right:10px;background:rgba(15,23,42,0.95);color:#e5e7eb;padding:8px 16px;border-radius:10px;font-size:13px;z-index:9999;transition:opacity 0.4s;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 20px rgba(0,0,0,0.3);';
       document.body.appendChild(indicator);
       return indicator;
     }
     
-    // Auto-sync every 30 seconds
+    // Auto-sync every 30 seconds (ดึงข้อมูลใหม่จาก Sheets)
     function startAutoSync() {
       setInterval(async () => {
-        if (API_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE' && !isSyncing) {
-          const data = await loadFromSheets();
-          if (data && data.sites && data.lastSync > lastSyncTime) {
-            state = data;
-            renderAll(false); // Render without saving
+        if (isApiConfigured() && !isSyncing) {
+          try {
+            const data = await loadFromSheets();
+            if (data && data.sites && data.lastSync && data.lastSync > lastSyncTime) {
+              state = data;
+              renderAll(false); // Render without saving
+            }
+          } catch (err) {
+            console.warn('Auto-sync error:', err);
           }
         }
-      }, 30000); // 30 seconds
+      }, 30000);
     }
 
     function formatTime(ts) {
