@@ -1,0 +1,20 @@
+**/*.pdf
+**/*.png
+**/*.jpg
+**/*.doc
+**/*.docx
+**/*.txt
+**/*.csv
+**/*.md
+.venv/**
+Canva/**
+เอกสาร/**
+.git/**
+.gitignore
+.clasp.json
+.claspignore
+README.md
+ปอศ. Logo.png
+check_syntax.js
+*.js
+!Code.gs
