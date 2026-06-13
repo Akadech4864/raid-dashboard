@@ -89,8 +89,17 @@ function getSheetData(spreadsheet, sheetName) {
 }
 
 function saveSites(spreadsheet, sites) {
+  const SITE_HEADERS = ['id', 'name', 'alias', 'address', 'lat', 'lng', 'status', 'commander', 'team', 'contact', 'startTime', 'objective', 'intel', 'risk', 'lastUpdate'];
   let sheet = spreadsheet.getSheetByName('sites') || spreadsheet.insertSheet('sites');
-  const data = sheet.getDataRange().getValues();
+  let data = sheet.getDataRange().getValues();
+
+  // If sheet is empty or missing headers, write them first
+  if (data.length === 0 || String(data[0][0]).toLowerCase() !== 'id') {
+    sheet.clearContents();
+    sheet.getRange(1, 1, 1, SITE_HEADERS.length).setValues([SITE_HEADERS]);
+    data = [SITE_HEADERS];
+  }
+
   const headers = data[0];
   const idIndex = headers.indexOf('id');
   
@@ -271,9 +280,11 @@ function restoreData(jsonString) {
 function importInitialData() {
   const spreadsheet = getSpreadsheet();
   initializeSheets();
+  const siteHeaders = ['id', 'name', 'alias', 'address', 'lat', 'lng', 'status', 'commander', 'team', 'contact', 'startTime', 'objective', 'intel', 'risk', 'lastUpdate'];
   const sitesSheet = spreadsheet.getSheetByName('sites');
-  if (sitesSheet.getLastRow() > 1) sitesSheet.deleteRows(2, sitesSheet.getLastRow() - 1);
-  
+  sitesSheet.clearContents();
+  sitesSheet.getRange(1, 1, 1, siteHeaders.length).setValues([siteHeaders]);
+
   const defaultSites = [
     {
       id: 'P1',
