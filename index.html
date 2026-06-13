@@ -1178,7 +1178,27 @@
     // Google Sheets Integration (via google.script.run)
     // ==========================================
     let isSyncing = false;
-    
+
+    // แปลงค่าที่ได้จาก getDataJSON() (เป็น JSON string) ให้เป็น array ของ sites
+    // รองรับทั้งกรณีที่ backend ส่ง string หรือ array (เผื่อ deploy เวอร์ชันเก่า)
+    function parseSitesJSON(payload) {
+      if (Array.isArray(payload)) return payload;
+      if (typeof payload === 'string') {
+        try {
+          const parsed = JSON.parse(payload);
+          if (parsed && parsed.__error) {
+            console.error('Backend getData error:', parsed.__error);
+            return null;
+          }
+          return Array.isArray(parsed) ? parsed : null;
+        } catch (e) {
+          console.error('parseSitesJSON failed:', e, payload);
+          return null;
+        }
+      }
+      return null;
+    }
+
     function loadFromSheets() {
       return new Promise((resolve) => {
         let resolved = false;
@@ -1197,11 +1217,12 @@
           if (typeof google !== 'undefined' && google.script && google.script.run) {
             showSyncStatus('กำลังโหลดข้อมูลคลาวด์...');
             google.script.run
-              .withSuccessHandler(sites => {
+              .withSuccessHandler(json => {
                 if (resolved) return;
                 resolved = true;
                 clearTimeout(timeoutId);
                 try {
+                  const sites = parseSitesJSON(json);
                   if (sites && sites.length > 0) {
                     sites.forEach(site => {
                       if (!site.persons) site.persons = [];
@@ -1227,7 +1248,7 @@
                 showSyncStatus('กำลังทำงานโหมดออฟไลน์', 3000);
                 resolve(loadFromLocalStorage());
               })
-              .getData();
+              .getDataJSON();
           } else {
             resolved = true;
             clearTimeout(timeoutId);
@@ -1321,7 +1342,8 @@
         try {
           if (typeof google !== 'undefined' && google.script && google.script.run && !isSyncing) {
             google.script.run
-              .withSuccessHandler(sites => {
+              .withSuccessHandler(json => {
+                const sites = parseSitesJSON(json);
                 if (sites && sites.length > 0) {
                   sites.forEach(site => {
                     if (!site.persons) site.persons = [];
@@ -1333,7 +1355,7 @@
                   renderAll(false);
                 }
               })
-              .getData();
+              .getDataJSON();
           }
         } catch (e) {
           console.warn('Auto sync fail', e);

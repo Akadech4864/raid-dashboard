@@ -15,7 +15,14 @@ function doGet(e) {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
-// ดึงข้อมูลทั้งหมดส่งให้หน้าเว็บ
+// แปลงค่าจากเซลล์ให้เป็น string เสมอ (กัน Date object ทำให้ serialize ค้าง)
+function s(value) {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return String(value.getTime());
+  return String(value);
+}
+
+// ดึงข้อมูลทั้งหมดส่งให้หน้าเว็บ (คืนค่าเป็น "อ็อบเจกต์")
 function getData() {
   const spreadsheet = getSpreadsheet();
   const sites = getSheetData(spreadsheet, 'sites');
@@ -25,39 +32,49 @@ function getData() {
   const targets = getSheetData(spreadsheet, 'targets');
 
   return sites.map(site => ({
-    id: site.id || '',
-    name: site.name || '',
-    alias: site.alias || '',
-    address: site.address || '',
+    id: s(site.id),
+    name: s(site.name),
+    alias: s(site.alias),
+    address: s(site.address),
     lat: parseFloat(site.lat) || 0,
     lng: parseFloat(site.lng) || 0,
-    status: site.status || 'planned',
-    commander: site.commander || '',
-    team: site.team || '',
-    contact: site.contact || '',
-    startTime: site.startTime || '',
-    objective: site.objective || '',
-    intel: site.intel || '',
-    risk: site.risk || '',
+    status: s(site.status) || 'planned',
+    commander: s(site.commander),
+    team: s(site.team),
+    contact: s(site.contact),
+    startTime: s(site.startTime),
+    objective: s(site.objective),
+    intel: s(site.intel),
+    risk: s(site.risk),
     lastUpdate: parseInt(site.lastUpdate) || Date.now(),
-    seized: seized.filter(s => s.siteId === site.id).map(s => ({
-      id: s.id, name: s.name, qty: parseInt(s.qty) || 1,
-      unit: s.unit || 'ชิ้น', note: s.note || '', ts: parseInt(s.ts) || Date.now()
+    seized: seized.filter(x => s(x.siteId) === s(site.id)).map(x => ({
+      id: s(x.id), name: s(x.name), qty: parseInt(x.qty) || 1,
+      unit: s(x.unit) || 'ชิ้น', note: s(x.note), ts: parseInt(x.ts) || Date.now()
     })),
-    logs: logs.filter(l => l.siteId === site.id).map(l => ({
-      id: l.id, text: l.text || '', author: l.author || '',
-      priority: l.priority || 'info', ts: parseInt(l.ts) || Date.now()
+    logs: logs.filter(l => s(l.siteId) === s(site.id)).map(l => ({
+      id: s(l.id), text: s(l.text), author: s(l.author),
+      priority: s(l.priority) || 'info', ts: parseInt(l.ts) || Date.now()
     })),
-    persons: persons.filter(p => p.siteId === site.id).map(p => ({
-      id: p.id, name: p.name || '', nationality: p.nationality || '',
-      idCard: p.idCard || '', role: p.role || '', note: p.note || '',
+    persons: persons.filter(p => s(p.siteId) === s(site.id)).map(p => ({
+      id: s(p.id), name: s(p.name), nationality: s(p.nationality),
+      idCard: s(p.idCard), role: s(p.role), note: s(p.note),
       ts: parseInt(p.ts) || Date.now()
     })),
-    targets: targets.filter(t => t.siteId === site.id || !t.siteId || t.siteId === '').map(t => ({
-      id: t.id || '', name: t.name || '', nationality: t.nationality || '',
-      idCard: t.idCard || '', role: t.role || '', note: t.note || ''
+    targets: targets.filter(t => s(t.siteId) === s(site.id) || !s(t.siteId)).map(t => ({
+      id: s(t.id), name: s(t.name), nationality: s(t.nationality),
+      idCard: s(t.idCard), role: s(t.role), note: s(t.note)
     }))
   }));
+}
+
+// คืนค่าข้อมูลเป็น "JSON string" — robust ที่สุดสำหรับ google.script.run
+// (string serialize ได้ 100% ไม่มีทางค้างเหมือนการส่ง object ซ้อนชั้น)
+function getDataJSON() {
+  try {
+    return JSON.stringify(getData());
+  } catch (err) {
+    return JSON.stringify({ __error: String(err && err.message || err) });
+  }
 }
 
 // บันทึกข้อมูลกลับลง Sheets
@@ -244,6 +261,35 @@ function saveLogs(spreadsheet, sites) {
   if (rows.length > 0) {
     sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
   }
+}
+
+// เครื่องมือตรวจสอบ — รันจาก GAS editor (เลือกฟังก์ชัน diagnose แล้วกด Run, ดู Execution log)
+function diagnose() {
+  const out = {};
+  try {
+    const ss = getSpreadsheet();
+    out.spreadsheetName = ss.getName();
+    out.sheets = {};
+    ['sites', 'persons', 'seized', 'logs', 'targets'].forEach(name => {
+      const sheet = ss.getSheetByName(name);
+      if (!sheet) { out.sheets[name] = 'MISSING'; return; }
+      out.sheets[name] = {
+        rows: sheet.getLastRow(),
+        cols: sheet.getLastColumn(),
+        headers: sheet.getLastColumn() > 0
+          ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+          : []
+      };
+    });
+    const data = getData();
+    out.getDataSiteCount = data.length;
+    out.firstSite = data[0] || null;
+    out.getDataJSONLength = getDataJSON().length;
+  } catch (err) {
+    out.error = String(err && err.stack || err);
+  }
+  Logger.log(JSON.stringify(out, null, 2));
+  return out;
 }
 
 function initializeSheets() {
